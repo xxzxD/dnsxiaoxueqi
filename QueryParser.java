@@ -142,7 +142,7 @@ public class QueryParser implements Runnable {
         } else { // 本地未检索到，请求因特网DNS服务器
             System.out.println(Thread.currentThread().getName() + " 请求因特网DNS服务器");
             try {
-                InetAddress dnsServerAddress = InetAddress.getByName("114.114.114.114");
+                InetAddress dnsServerAddress = InetAddress.getByName(DNSRelayServer.getDnsAddr());
                 DatagramPacket internetSendPacket = new DatagramPacket(data, dataLength, dnsServerAddress, 53);
                 DatagramSocket internetSocket = new DatagramSocket();
                 internetSocket.send(internetSendPacket);
