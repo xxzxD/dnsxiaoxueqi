@@ -17,6 +17,12 @@ public class DNSRelayServer {
     private static Map<String, String> domainIpMap;
     private static DatagramSocket socket;
 
+    // identify -d -dd or null
+    private static int d = 0;
+    private static byte[] dnsaddr = new byte[4096];
+    private static byte[] dnsfile = new byte[4096];
+    //
+    
     static final Object lockObj = new Object();
 
     static Map<String, String> getDomainIpMap() {
@@ -26,6 +32,11 @@ public class DNSRelayServer {
     static DatagramSocket getSocket() {
         return socket;
     }
+    
+    public static String getDnsAddr() {
+    	return new String(dnsaddr);
+    }
+    
 
     private static Map<String, String> generateDomainIpMap(String filePath) {
         // 读取本地域名-IP映射文件的内容
@@ -48,12 +59,96 @@ public class DNSRelayServer {
         return domainIpMap;
     }
 
+    
+    //
+    
+    // 判断D还是DD, D=1, DD=2
+    public static int DorDD(String D) {
+    	if(D.length() == 2) {
+    		return 1;
+    	}else if(D.length() == 3) {
+    		return 2;
+    	}else {
+    		return 0;
+    	}
+    }
+    
+    public static int judgeParaType(String p) {
+    	if(p.length()<=3) {
+    		return 0;
+    	}else if(p.indexOf(".txt")!=-1) {
+    		return 2;
+    	}else {
+    		return 1;
+    	}
+    }
+    
+    //
+    
+    
     public static void main(String[] args ) {
-        if (args.length < 1) {
-            System.out.println("请输入本地域名-IP映射文件的路径");
-        }
-
-        domainIpMap = generateDomainIpMap(args[0]);
+    	
+    	//
+    	switch(args.length){
+    		case 0:
+    			break;
+    		case 1:
+    			switch(judgeParaType(args[0])){
+    				case 0:
+    					d = DorDD(args[0]);
+    					break;
+    				case 1:
+    					dnsaddr=args[0].getBytes();
+    					break;
+    				case 2:
+    					dnsfile=args[0].getBytes();
+    					break;
+    			}
+    			break;
+    		case 2:
+    			switch(judgeParaType(args[0])){
+					case 0:
+						d = DorDD(args[0]);
+						break;
+					case 1:
+						dnsaddr=args[0].getBytes();
+						break;
+    			}
+    			switch(judgeParaType(args[1])){
+					case 1:
+						dnsaddr=args[1].getBytes();
+						break;
+					case 2:
+						dnsfile=args[1].getBytes();
+						break;
+    			}
+    			break;
+    		case 3:
+    			d=DorDD(args[0]);
+    			dnsaddr=args[1].getBytes();
+    			dnsfile=args[2].getBytes();
+    			break;
+    		default:
+    			System.out.println("输入错误");
+    			break;
+    	}
+    	
+    	// if no filepath entered, use default path
+    	if(dnsfile[0]==0) {
+    		String dp =  "/Users/xiaohongsun/Desktop/dnsrelay-master/dnsrelay.txt";
+    		dnsfile=dp.getBytes();
+    	}
+    	
+    	if(dnsaddr[0]==0) {
+    		String da =  "202.106.0.20";
+    		dnsaddr=da.getBytes();
+    	}
+    	
+    	
+    	//
+    	
+    	
+        domainIpMap = generateDomainIpMap(new String(dnsfile)); // change
         System.out.println("本地域名-IP映射文件读取完成。一共" + domainIpMap.size() + "条记录");
 
         try {
