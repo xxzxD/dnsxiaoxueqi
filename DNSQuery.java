@@ -17,8 +17,14 @@ public class DNSQuery extends Thread {
         System.arraycopy(packet.getData(), 0, data, 0, packet.getLength());
     }
 
+    public void display(String info, int level) { //level  1 2 3
+    	if(d==level) {
+    		System.out.print(info);
+    	}
+    }
+    
     /**
-     * ´Ó×Ö½ÚÊı×éÖĞÌáÈ¡³öÓòÃû
+     * ä»å­—èŠ‚æ•°ç»„ä¸­æå–å‡ºåŸŸå
      */
     public static String extractDomain(byte[] bytes, int offset, int stop) throws UnsupportedEncodingException {
         StringBuilder stringBuffer = new StringBuilder();
@@ -28,7 +34,7 @@ public class DNSQuery extends Thread {
         while (offset < bytes.length && (bytes[offset] & 0xff) != stop){
             length = (bytes[offset] & 0xff);
             offset++;
-            //Ò»Î¬×Ö½ÚÊı×é×ª»¯ÎªAscii¶ÔÓ¦µÄ×Ö·û´®
+            //ä¸€ç»´å­—èŠ‚æ•°ç»„è½¬åŒ–ä¸ºAsciiå¯¹åº”çš„å­—ç¬¦ä¸²
             data = new byte[length];
             System.arraycopy(bytes, offset, data, 0, length);
             asciiStr = new String(data, "ISO8859-1");
@@ -47,12 +53,13 @@ public class DNSQuery extends Thread {
         byte[] buff2 = new byte[2];
         DNSHeader dnsHeader = new DNSHeader();
         DNSQuestion dnsQuestion = new DNSQuestion();
-        // ´¦ÀíÇëÇó£¬·µ»Ø½á¹û
+        d = DNSRelayServer.getd();
+        // å¤„ç†è¯·æ±‚ï¼Œè¿”å›ç»“æœ
 
         /*for (int i = 0; i < 2; i++) {
             buff2[i] = data[i + offset];
         }*/
-        // ¶ÁÈ¡DNSĞ­ÒéÍ·
+        // è¯»å–DNSåè®®å¤´
         for(int i=0; i<6; i++){
             System.arraycopy(data, offset, buff2, 0, 2);
             offset += 2;
@@ -78,9 +85,9 @@ public class DNSQuery extends Thread {
             }
         }
 
-        // »ñÈ¡²éÑ¯µÄÓòÃû
+        // è·å–æŸ¥è¯¢çš„åŸŸå
 
-        // qdcountÍ¨³£Îª1
+        // qdcounté€šå¸¸ä¸º1
         String domainName = null;
         try {
             domainName = extractDomain(data, offset, 0x00);
@@ -102,21 +109,21 @@ public class DNSQuery extends Thread {
         }
 
 
-        // ²éÑ¯±¾µØÓòÃû-IPÓ³Éä
+        // æŸ¥è¯¢æœ¬åœ°åŸŸå-IPæ˜ å°„
         String ip = DNSRelayServer.getDomainIpMap().getOrDefault(dnsQuestion.getQname(), "");
         
         
         System.out.println(this.getName() + " Local search results domain:" + dnsQuestion.getQname() + " QTYPE:" + dnsQuestion.getQtype() + " ip:" + ip);
 
-        // ÔÚ±¾µØÓòÃû-IPÓ³ÉäÎÄ¼şÖĞÕÒµ½½á¹ûÇÒ²éÑ¯ÀàĞÍÎªA(Host Address)£¬¹¹Ôì»Ø´ğµÄÊı¾İ°ü
+        // åœ¨æœ¬åœ°åŸŸå-IPæ˜ å°„æ–‡ä»¶ä¸­æ‰¾åˆ°ç»“æœä¸”æŸ¥è¯¢ç±»å‹ä¸ºA(Host Address)ï¼Œæ„é€ å›ç­”çš„æ•°æ®åŒ…
         if (!"".equals(ip) && dnsQuestion.getQtype() == 1) {
             // Header
             short rcode;
             
-            // rcodeÎª3£¨Ãû×Ö²î´í£©£¬Ö»´ÓÒ»¸öÊÚÈ¨Ãû×Ö·şÎñÆ÷ÉÏ·µ»Ø£¬Ëü±íÊ¾ÔÚ²éÑ¯ÖĞÖ¸¶¨µÄÓòÃû²»´æÔÚ
+            // rcodeä¸º3ï¼ˆåå­—å·®é”™ï¼‰ï¼Œåªä»ä¸€ä¸ªæˆæƒåå­—æœåŠ¡å™¨ä¸Šè¿”å›ï¼Œå®ƒè¡¨ç¤ºåœ¨æŸ¥è¯¢ä¸­æŒ‡å®šçš„åŸŸåä¸å­˜åœ¨
             if ("0.0.0.0".equals(ip)) {
                 rcode = (short) 0x8583;
-            } else {// rcodeÎª0£¨Ã»ÓĞ²î´í£©
+            } else {// rcodeä¸º0ï¼ˆæ²¡æœ‰å·®é”™ï¼‰
                 rcode = (short) 0x8580;
             }
             DNSHeader dnsHeaderResponse = new DNSHeader(dnsHeader.getID(), rcode, dnsHeader.getQdcount(), (short) 1, (short) 1, (short) 0);
@@ -129,7 +136,7 @@ public class DNSQuery extends Thread {
             DNSResource answer = new DNSResource((short) 0xc00c, dnsQuestion.getQtype(), dnsQuestion.getQclass(), 3600*24, (short) 4, ip);
             byte[] answerByteArray = answer.toByteArray();
 
-            // Authoritative nameservers£¬Ö»ÊÇÄ£ÄâÁË°ü¸ñÊ½£¬nameserverÊµ¼ÊÖ¸ÏòÁË²éÑ¯µÄÓòÃû
+            // Authoritative nameserversï¼Œåªæ˜¯æ¨¡æ‹Ÿäº†åŒ…æ ¼å¼ï¼Œnameserverå®é™…æŒ‡å‘äº†æŸ¥è¯¢çš„åŸŸå
             DNSResource nameserver = new DNSResource((short) 0xc00c, (short) 6, dnsQuestion.getQclass(), 3600*24, (short) 0 , null);
             byte[] nameserverByteArray = nameserver.toByteArray();
 
@@ -151,20 +158,20 @@ public class DNSQuery extends Thread {
                 responseData[responseOffset++] = b;
             }
 
-            System.out.println(this.getName() + " ÏìÓ¦Êı¾İ£º" +Convert.byteArrayToHexString(answerByteArray));
+            System.out.println(this.getName() + " å“åº”æ•°æ®ï¼š" +Convert.byteArrayToHexString(answerByteArray));
 
-            // »Ø¸´ÏìÓ¦Êı¾İ°ü
+            // å›å¤å“åº”æ•°æ®åŒ…
             DatagramPacket responsePacket = new DatagramPacket(responseData, responseData.length, address, port);
             synchronized (DNSRelayServer.LOCK_OBJ) {
-                    System.out.println(this.getName() + "»ñµÃsocket£¬ÏìÓ¦" + dnsQuestion.getQname() + ":" + ip);
+                    System.out.println(this.getName() + "è·å¾—socketï¼Œå“åº”" + dnsQuestion.getQname() + ":" + ip);
                 try {
                     DNSRelayServer.getSocket().send(responsePacket);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-        } else { // ±¾µØÎ´¼ìË÷µ½£¬ÇëÇóÒòÌØÍøDNS·şÎñÆ÷
-            System.out.println(this.getName() + " ÇëÇóÒòÌØÍøDNS·şÎñÆ÷");
+        } else { // æœ¬åœ°æœªæ£€ç´¢åˆ°ï¼Œè¯·æ±‚å› ç‰¹ç½‘DNSæœåŠ¡å™¨
+            System.out.println(this.getName() + " è¯·æ±‚å› ç‰¹ç½‘DNSæœåŠ¡å™¨");
 
             InetAddress dnsServerAddress = null;
             try {
@@ -193,11 +200,11 @@ public class DNSQuery extends Thread {
                 e.printStackTrace();
             }
 
-            // »Ø¸´ÏìÓ¦Êı¾İ°ü
+            // å›å¤å“åº”æ•°æ®åŒ…
             DatagramPacket responsePacket = new DatagramPacket(receivedData, internetReceivedPacket.getLength(), address, port);
             internetSocket.close();
             synchronized (DNSRelayServer.LOCK_OBJ) {
-                    System.out.println(this.getName() + " »ñµÃsocket£¬ÏìÓ¦" + dnsQuestion.getQname());
+                    System.out.println(this.getName() + " è·å¾—socketï¼Œå“åº”" + dnsQuestion.getQname());
                 try {
                     DNSRelayServer.getSocket().send(responsePacket);
                 } catch (IOException e) {
