@@ -147,7 +147,7 @@ public class DNSRelayServer {
     	}
     	
     	if(dnsaddr[0]==0) {
-    		String da =  "202.106.0.20";
+    		String da =  "114.114.114.114";
     		dnsaddr=da.getBytes();
     	}
     	
