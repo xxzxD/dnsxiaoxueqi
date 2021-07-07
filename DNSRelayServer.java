@@ -34,6 +34,11 @@ public class DNSRelayServer {
     public static int getDnsPort() {
         return port;
     }
+    
+    public static int getd() {		
+    	return d+1;		
+    }
+    
     private static Map<String, String> domainIpMap(String filePath) throws IOException {
         File localTableFile = new File(filePath);
         Map<String, String> domainIpMap = new HashMap<>();
