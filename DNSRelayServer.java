@@ -179,7 +179,6 @@ public class DNSRelayServer {
                 e.printStackTrace();
             }
             DNSQuery queryParser = new DNSQuery(packet);
-            queryParser.setName("Thread " + num++);
             queryParser.start();
         }
     }
