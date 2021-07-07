@@ -37,6 +37,10 @@ public class DNSRelayServer {
     	return new String(dnsaddr);
     }
     
+    public static int getd() {
+    	return d+1;
+    }
+    
 
     private static Map<String, String> generateDomainIpMap(String filePath) {
         // 读取本地域名-IP映射文件的内容
@@ -53,8 +57,9 @@ public class DNSRelayServer {
                 domainIpMap.put(contentList[1], contentList[0]);
             }
             br.close();
+            System.out.println("OK!\n" + domainIpMap.size() + " names, occupy "  + localTableFile.length() + " bytes memory");
         } catch (IOException e) {
-            e.printStackTrace();
+        	System.out.println("Read file error!");
         }
         return domainIpMap;
     }
@@ -78,8 +83,10 @@ public class DNSRelayServer {
     		return 0;
     	}else if(p.indexOf(".txt")!=-1) {
     		return 2;
-    	}else {
+    	}else if(p.indexOf(".")!=-1){
     		return 1;
+    	}else {
+    		return -1;
     	}
     }
     
@@ -135,7 +142,7 @@ public class DNSRelayServer {
     	
     	// if no filepath entered, use default path
     	if(dnsfile[0]==0) {
-    		String dp =  "/Users/xiaohongsun/Desktop/dnsrelay-master/dnsrelay.txt";
+    		String dp =  "dnsrelay.txt";
     		dnsfile=dp.getBytes();
     	}
     	
@@ -145,17 +152,22 @@ public class DNSRelayServer {
     	}
     	
     	
-    	//
-    	
-    	
-        domainIpMap = generateDomainIpMap(new String(dnsfile)); // change
-        System.out.println("本地域名-IP映射文件读取完成。一共" + domainIpMap.size() + "条记录");
-
+    	System.out.println("Usage: dnsrelay [-d | -dd] [<dns-server>] [<db-file>]");
+    	System.out.println("Name Server " + new String(dnsaddr));
+    	System.out.println("Debug level " + d);
+        System.out.print("Bind UDP port 53 ... ");
         try {
             socket = new DatagramSocket(53);
+            System.out.println("OK!");
         } catch (SocketException e) {
-            e.printStackTrace();
+        	System.out.println("Bind port error!");
         }
+        
+        System.out.print("Try to load table " + new String(dnsfile) + " ... ");
+        domainIpMap = generateDomainIpMap(new String(dnsfile)); // change
+        
+        
+        
         byte[] data = new byte[1024];
         DatagramPacket packet = new DatagramPacket(data, data.length);
 
