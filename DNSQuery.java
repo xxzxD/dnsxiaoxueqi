@@ -1,13 +1,16 @@
 
 import java.io.IOException;
 import java.net.*;
-
+import java.util.Date;
+import java.text.SimpleDateFormat;
 
 public class DNSQuery extends Thread {
     private final byte[] data;
     private final int dataLength;
     private final InetAddress address;
     private final int port;
+    private int d=0;
+    private static int c=0;
 
     DNSQuery(DatagramPacket packet) {
         data = new byte[packet.getLength()];
@@ -17,9 +20,16 @@ public class DNSQuery extends Thread {
         System.arraycopy(packet.getData(), 0, data, 0, packet.getLength());
     }
 
-    /**
-     * 从字节数组中提取出域名
-     */
+    public void LevelDisplay(String qn, short qt, short qc) { //level  1 2 3
+    	SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    	System.out.print(" "+c+"  "+df.format(new Date())+ "  Client 127.0.0.1       ");
+    	System.out.println(qn+", TYPE "+qt+", CLASS "+qc);
+    	c=c+1;
+        if(d==3) {
+        	System.out.println("byte info is "+Convert.byteArrayToHexString(data));
+        }
+    }
+
     public static String getDomain(byte[] bytes, int offset, int stop) {
         StringBuilder stringBuffer = new StringBuilder();
         int length;
@@ -28,7 +38,6 @@ public class DNSQuery extends Thread {
         while (offset < bytes.length && (bytes[offset] & 0xff) != stop){
             length = (bytes[offset] & 0xff);
             offset++;
-            //一维字节数组转化为Ascii对应的字符串
             data = new byte[length];
             System.arraycopy(bytes, offset, data, 0, length);
             string = new String(data);
@@ -47,7 +56,6 @@ public class DNSQuery extends Thread {
     public void receive(byte[] data, int length){
         DatagramPacket responsePacket = new DatagramPacket(data, length, address, port);
         synchronized (DNSRelayServer.LOCK_OBJ) {
-            System.out.println(this.getName() + " 获得socket，响应" + dnsQuestion.getQname());
             try {
                 DNSRelayServer.getSocket().send(responsePacket);
             } catch (IOException e) {
@@ -59,12 +67,8 @@ public class DNSQuery extends Thread {
 
         DNSHeader dnsHeaderResponse = new DNSHeader(dnsHeader.getID(), rcode, dnsHeader.getQdcount(), (short) 1, (short) 1, (short) 0);
         byte[] dnsHeaderByteArray = dnsHeaderResponse.toByteArray();
-
-        // Questions
         byte[] dnsQuestionByteArray = dnsQuestion.toByteArray();
 
-        // Answers
-        //0xc00c DNS协议消息压缩技术
         short length;
         if(ip.contains(".")){
             length = 4;
@@ -92,14 +96,9 @@ public class DNSQuery extends Thread {
             }
         }
 
-        System.out.println(this.getName() + " 响应数据：" +Convert.byteArrayToHexString(answerByteArray));
-
-        // 回复响应数据包
         receive(responseData, responseData.length);
     }
     public void getIPfromInternet() throws IOException {
-        System.out.println(this.getName() + " 请求因特网DNS服务器");
-
         InetAddress dnsAddress = InetAddress.getByName(DNSRelayServer.getDnsAddr());
 
         DatagramPacket sendPacket = new DatagramPacket(data, dataLength, dnsAddress, DNSRelayServer.getDnsPort());
@@ -111,7 +110,6 @@ public class DNSQuery extends Thread {
         DatagramPacket receivedPacket = new DatagramPacket(data, data.length);
         socket.receive(receivedPacket);
 
-        // 回复响应数据包
         receive(data, receivedPacket.getLength());
         socket.close();
     }
@@ -122,12 +120,7 @@ public class DNSQuery extends Thread {
         byte[] buff2 = new byte[2];
         dnsHeader = new DNSHeader();
         dnsQuestion = new DNSQuestion();
-        // 处理请求，返回结果
-
-        /*for (int i = 0; i < 2; i++) {
-            buff2[i] = data[i + offset];
-        }*/
-        // 读取DNS协议头
+        d=DNSRelayServer.getd();
         for (int i=0; i<6; i++){
             System.arraycopy(data, offset, buff2, 0, 2);
             offset += 2;
@@ -153,7 +146,6 @@ public class DNSQuery extends Thread {
             }
         }
 
-        // 获取查询的域名
         String domainName;
         domainName = getDomain(data, offset, 0x00);
         dnsQuestion.setQname(domainName);
@@ -169,13 +161,12 @@ public class DNSQuery extends Thread {
             }
         }
 
-        // 查询本地域名-IP映射
+        
         String ip = DNSRelayServer.getDomainIpMap().getOrDefault(dnsQuestion.getQname(), "");
-
-        System.out.println(this.getName() + " Local search results domain:" + dnsQuestion.getQname() + " QTYPE:" + dnsQuestion.getQtype() + " ip:" + ip);
-
-        // 在本地域名-IP映射文件中找到结果且查询类型为A(Host Address)，构造回答的数据包
-        //&& dnsQuestion.getQtype() == 1
+        if(d>=2) {
+        	LevelDisplay(dnsQuestion.getQname(),dnsQuestion.getQtype(),dnsQuestion.getQclass());
+        }
+        
         short rcode;
         if (dnsQuestion.getQtype() == 1 && ip.contains(".")){
             if("0.0.0.0".equals(ip)){
@@ -192,8 +183,6 @@ public class DNSQuery extends Thread {
                 rcode = 0;
             }
             getIPfromLocal(ip, rcode);
-            // Header
-                // rcode为3（名字差错），只从一个授权名字服务器上返回，它表示在查询中指定的域名不存在
         } else {
             try {
                 getIPfromInternet();
