@@ -8,6 +8,7 @@ public class DNSQuery extends Thread {
     private final int dataLength;
     private final InetAddress address;
     private final int port;
+    private int d; // 1 2 3
 
     DNSQuery(DatagramPacket packet) {
         data = new byte[packet.getLength()];
