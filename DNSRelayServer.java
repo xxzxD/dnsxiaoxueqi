@@ -12,7 +12,6 @@ public class DNSRelayServer {
 
     private static Map<String, String> domainIpMap;
     private static DatagramSocket socket;
-    // identify -d -dd or null
     private static int d = 0;
     private static byte[] dnsaddr = new byte[4096];
     private static byte[] dnsfile = new byte[4096];
@@ -51,6 +50,9 @@ public class DNSRelayServer {
                 continue;
             }
             domainIpMap.put(contentList[1], contentList[0]);
+            if(d==2) {
+            	System.out.println(contentList[1]+" "+contentList[0]);
+            }
         }
         br.close();
         System.out.println("OK!\n" + domainIpMap.size() + " names, occupy "  + localTableFile.length() + " bytes memory");
@@ -165,7 +167,8 @@ public class DNSRelayServer {
         	System.exit(0);
         }
         
-        System.out.print("Try to load table " + new String(dnsfile) + " ... ");
+        System.out.println("Try to load table \"" + new String(dnsfile) + "\" ... ");
+        
         domainIpMap = domainIpMap(new String(dnsfile));
         
         byte[] data = new byte[1024];
