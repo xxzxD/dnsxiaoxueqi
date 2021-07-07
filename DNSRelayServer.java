@@ -34,10 +34,15 @@ public class DNSRelayServer {
     public static int getDnsPort() {
         return port;
     }
+    
+    public static int getd() {		
+    	return d+1;		
+    }
+    
     private static Map<String, String> domainIpMap(String filePath) throws IOException {
-        // 读取本地域名-IP映射文件的内容
         File localTableFile = new File(filePath);
         Map<String, String> domainIpMap = new HashMap<>();
+        try {
         BufferedReader br = new BufferedReader(new FileReader(localTableFile));
         String line;
         while ((line = br.readLine()) != null) {
@@ -48,17 +53,24 @@ public class DNSRelayServer {
             domainIpMap.put(contentList[1], contentList[0]);
         }
         br.close();
+        System.out.println("OK!\n" + domainIpMap.size() + " names, occupy "  + localTableFile.length() + " bytes memory");
+        } catch (IOException e) {
+        	System.out.println("Read file error!\nExiting...");
+        	System.exit(0);
+        }
         return domainIpMap;
     }
 
-    // 判断D还是DD, D=1, DD=2
+    // DD, D=1, DD=2
     public static int DorDD(String D) {
         if(D.length() == 2) {
             return 1;
         }else if(D.length() == 3) {
             return 2;
         }else {
-            return 0;
+            System.out.println("Input error\nExiting...");
+            System.exit(0);
+            return -1;
         }
     }
 
@@ -67,13 +79,17 @@ public class DNSRelayServer {
             return 0;
         }else if(p.contains(".txt")) {
             return 2;
-        }else {
+        }else if(p.indexOf(".")!=-1){
             return 1;
-        }
+        }else {
+            System.out.println("Input error\nExiting...");
+            System.exit(0);
+    		return -1;
+    	}
     }
 
-    public static void main(String[] args ) throws IOException {
-
+    public static void main(String[] args) throws IOException {
+    	System.out.println("Usage: dnsrelay [-d | -dd] [<dns-server>] [<db-file>]\n");
         switch(args.length){
             case 0:
                 break;
@@ -88,8 +104,6 @@ public class DNSRelayServer {
                     case 2:
                         dnsfile=args[0].getBytes();
                         break;
-                    default:
-                        break;
                 }
                 break;
             case 2:
@@ -101,7 +115,9 @@ public class DNSRelayServer {
                         dnsaddr=args[0].getBytes();
                         break;
                     default:
-                        break;
+                        System.out.println("Input error\nExiting...");
+                        System.exit(0);
+                    	break;
                 }
                 switch(judgeParaType(args[1])){
                     case 1:
@@ -111,8 +127,9 @@ public class DNSRelayServer {
                         dnsfile=args[1].getBytes();
                         break;
                     default:
-
-                        break;
+                        System.out.println("Input error\nExiting...");
+                        System.exit(0);
+                    	break;
                 }
                 break;
             case 3:
@@ -121,28 +138,36 @@ public class DNSRelayServer {
                 dnsfile=args[2].getBytes();
                 break;
             default:
-                System.out.println("输入错误");
+                System.out.println("Input error\nExiting...");
+                System.exit(0);
                 break;
         }
 
-        // if no filepath entered, use default path
+        // if no filepath/filename entered, use default
         if(dnsfile[0]==0) {
-            String dp =  "C:\\Users\\yao\\Desktop\\dnsrelay-master\\dnsrelay-master\\dnsrelay.txt";
+            String dp =  "dnsrelay.txt";
             dnsfile=dp.getBytes();
         }
-
         if(dnsaddr[0]==0) {
             String da =  "202.106.0.20";
             dnsaddr=da.getBytes();
         }
-        // change
-        domainIpMap = domainIpMap(new String(dnsfile));
-        System.out.println("本地域名-IP映射文件读取完成。一共" + domainIpMap.size() + "条记录");
+        
+    	System.out.println("Name Server " + new String(dnsaddr));
+    	System.out.println("Debug level " + d);
+        System.out.print("Bind UDP port "+ port +" ... ");
+        
         try {
             socket = new DatagramSocket(getDnsPort());
+            System.out.println("OK!");
         } catch (SocketException e) {
-            e.printStackTrace();
+        	System.out.println("Bind port error!\nExiting...");
+        	System.exit(0);
         }
+        
+        System.out.print("Try to load table " + new String(dnsfile) + " ... ");
+        domainIpMap = domainIpMap(new String(dnsfile));
+        
         byte[] data = new byte[1024];
         DatagramPacket packet = new DatagramPacket(data, data.length);
 
@@ -154,7 +179,7 @@ public class DNSRelayServer {
                 e.printStackTrace();
             }
             DNSQuery queryParser = new DNSQuery(packet);
-            System.out.println(queryParser.getName()+"开始");
+            queryParser.setName("Thread " + num++);
             queryParser.start();
         }
     }
