@@ -35,9 +35,9 @@ public class DNSRelayServer {
         return port;
     }
     private static Map<String, String> domainIpMap(String filePath) throws IOException {
-        // ��ȡ��������-IPӳ���ļ�������
         File localTableFile = new File(filePath);
         Map<String, String> domainIpMap = new HashMap<>();
+        try {
         BufferedReader br = new BufferedReader(new FileReader(localTableFile));
         String line;
         while ((line = br.readLine()) != null) {
@@ -48,10 +48,15 @@ public class DNSRelayServer {
             domainIpMap.put(contentList[1], contentList[0]);
         }
         br.close();
+        System.out.println("OK!\n" + domainIpMap.size() + " names, occupy "  + localTableFile.length() + " bytes memory");
+        } catch (IOException e) {
+        	System.out.println("Read file error!");
+        	throw new IOException(e);
+        }
         return domainIpMap;
     }
 
-    // �ж�D����DD, D=1, DD=2
+    // DD, D=1, DD=2
     public static int DorDD(String D) {
         if(D.length() == 2) {
             return 1;
@@ -67,9 +72,11 @@ public class DNSRelayServer {
             return 0;
         }else if(p.contains(".txt")) {
             return 2;
-        }else {
+        }else if(p.indexOf(".")!=-1){
             return 1;
-        }
+        }else {
+    		return -1;
+    	}
     }
 
     public static void main(String[] args ) throws IOException {
@@ -121,28 +128,35 @@ public class DNSRelayServer {
                 dnsfile=args[2].getBytes();
                 break;
             default:
-                System.out.println("�������");
+                System.out.println("input error");
                 break;
         }
 
-        // if no filepath entered, use default path
+        // if no filepath/filename entered, use default
         if(dnsfile[0]==0) {
             String dp =  "dnsrelay.txt";
             dnsfile=dp.getBytes();
         }
-
         if(dnsaddr[0]==0) {
             String da =  "202.106.0.20";
             dnsaddr=da.getBytes();
         }
-        // change
-        domainIpMap = domainIpMap(new String(dnsfile));
-        System.out.println("��������-IPӳ���ļ���ȡ��ɡ�һ��" + domainIpMap.size() + "����¼");
+        
+    	System.out.println("Usage: dnsrelay [-d | -dd] [<dns-server>] [<db-file>]");
+    	System.out.println("Name Server " + new String(dnsaddr));
+    	System.out.println("Debug level " + d);
+        System.out.print("Bind UDP port "+ port +" ... ");
+        
         try {
             socket = new DatagramSocket(getDnsPort());
+            System.out.println("OK!");
         } catch (SocketException e) {
-            e.printStackTrace();
+        	System.out.println("Bind port error!");
         }
+        
+        System.out.print("Try to load table " + new String(dnsfile) + " ... ");
+        domainIpMap = domainIpMap(new String(dnsfile));
+        
         byte[] data = new byte[1024];
         DatagramPacket packet = new DatagramPacket(data, data.length);
 
