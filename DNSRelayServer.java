@@ -50,8 +50,8 @@ public class DNSRelayServer {
         br.close();
         System.out.println("OK!\n" + domainIpMap.size() + " names, occupy "  + localTableFile.length() + " bytes memory");
         } catch (IOException e) {
-        	System.out.println("Read file error!");
-        	throw new IOException(e);
+        	System.out.println("Read file error!\nExiting...");
+        	System.exit(0);
         }
         return domainIpMap;
     }
@@ -75,11 +75,13 @@ public class DNSRelayServer {
         }else if(p.indexOf(".")!=-1){
             return 1;
         }else {
+            System.out.println("input error\nExiting...");
+            System.exit(0);
     		return -1;
     	}
     }
 
-    public static void main(String[] args ) throws IOException {
+    public static void main(String[] args) throws IOException {
 
         switch(args.length){
             case 0:
@@ -95,8 +97,6 @@ public class DNSRelayServer {
                     case 2:
                         dnsfile=args[0].getBytes();
                         break;
-                    default:
-                        break;
                 }
                 break;
             case 2:
@@ -107,8 +107,6 @@ public class DNSRelayServer {
                     case 1:
                         dnsaddr=args[0].getBytes();
                         break;
-                    default:
-                        break;
                 }
                 switch(judgeParaType(args[1])){
                     case 1:
@@ -116,9 +114,6 @@ public class DNSRelayServer {
                         break;
                     case 2:
                         dnsfile=args[1].getBytes();
-                        break;
-                    default:
-
                         break;
                 }
                 break;
@@ -128,7 +123,8 @@ public class DNSRelayServer {
                 dnsfile=args[2].getBytes();
                 break;
             default:
-                System.out.println("input error");
+                System.out.println("input error\nExiting...");
+                System.exit(0);
                 break;
         }
 
@@ -142,7 +138,7 @@ public class DNSRelayServer {
             dnsaddr=da.getBytes();
         }
         
-    	System.out.println("Usage: dnsrelay [-d | -dd] [<dns-server>] [<db-file>]");
+    	System.out.println("Usage: dnsrelay [-d | -dd] [<dns-server>] [<db-file>]\n");
     	System.out.println("Name Server " + new String(dnsaddr));
     	System.out.println("Debug level " + d);
         System.out.print("Bind UDP port "+ port +" ... ");
@@ -151,7 +147,8 @@ public class DNSRelayServer {
             socket = new DatagramSocket(getDnsPort());
             System.out.println("OK!");
         } catch (SocketException e) {
-        	System.out.println("Bind port error!");
+        	System.out.println("Bind port error!\nExiting...");
+        	System.exit(0);
         }
         
         System.out.print("Try to load table " + new String(dnsfile) + " ... ");
