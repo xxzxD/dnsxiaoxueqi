@@ -63,7 +63,9 @@ public class DNSRelayServer {
         }else if(D.length() == 3) {
             return 2;
         }else {
-            return 0;
+            System.out.println("Input error\nExiting...");
+            System.exit(0);
+            return -1;
         }
     }
 
@@ -75,14 +77,14 @@ public class DNSRelayServer {
         }else if(p.indexOf(".")!=-1){
             return 1;
         }else {
-            System.out.println("input error\nExiting...");
+            System.out.println("Input error\nExiting...");
             System.exit(0);
     		return -1;
     	}
     }
 
     public static void main(String[] args) throws IOException {
-
+    	System.out.println("Usage: dnsrelay [-d | -dd] [<dns-server>] [<db-file>]\n");
         switch(args.length){
             case 0:
                 break;
@@ -107,6 +109,10 @@ public class DNSRelayServer {
                     case 1:
                         dnsaddr=args[0].getBytes();
                         break;
+                    default:
+                        System.out.println("Input error\nExiting...");
+                        System.exit(0);
+                    	break;
                 }
                 switch(judgeParaType(args[1])){
                     case 1:
@@ -115,6 +121,10 @@ public class DNSRelayServer {
                     case 2:
                         dnsfile=args[1].getBytes();
                         break;
+                    default:
+                        System.out.println("Input error\nExiting...");
+                        System.exit(0);
+                    	break;
                 }
                 break;
             case 3:
@@ -123,7 +133,7 @@ public class DNSRelayServer {
                 dnsfile=args[2].getBytes();
                 break;
             default:
-                System.out.println("input error\nExiting...");
+                System.out.println("Input error\nExiting...");
                 System.exit(0);
                 break;
         }
@@ -138,7 +148,6 @@ public class DNSRelayServer {
             dnsaddr=da.getBytes();
         }
         
-    	System.out.println("Usage: dnsrelay [-d | -dd] [<dns-server>] [<db-file>]\n");
     	System.out.println("Name Server " + new String(dnsaddr));
     	System.out.println("Debug level " + d);
         System.out.print("Bind UDP port "+ port +" ... ");
