@@ -8,18 +8,16 @@ import java.util.Map;
 
 
 public class DNSRelayServer {
-    public static final int port = 53;
-
-    private static Map<String, String> domainIpMap;
+    private static final int PORT = 53;
+    private static Map<String, String> domainIp;
     private static DatagramSocket socket;
+    // identify -d -dd or null
     private static int d = 0;
     private static byte[] dnsaddr = new byte[4096];
     private static byte[] dnsfile = new byte[4096];
 
-    static final Object LOCK_OBJ = new Object();
-
-    static Map<String, String> getDomainIpMap() {
-        return domainIpMap;
+    static Map<String, String> getDomainIp() {
+        return domainIp;
     }
 
     static DatagramSocket getSocket() {
@@ -31,39 +29,47 @@ public class DNSRelayServer {
     }
 
     public static int getDnsPort() {
-        return port;
+        return PORT;
     }
     
     public static int getd() {		
     	return d+1;		
     }
-    
-    private static Map<String, String> domainIpMap(String filePath) throws IOException {
-        File localTableFile = new File(filePath);
-        Map<String, String> domainIpMap = new HashMap<>();
+
+    /**
+     * @Description: Get HashMap of address and ip in the file
+     * @param path
+     */
+    private static void domainIpMap(String path) {
+        File txt = new File(path);
+        domainIp = new HashMap<>();
         try {
-        BufferedReader br = new BufferedReader(new FileReader(localTableFile));
-        String line;
-        while ((line = br.readLine()) != null) {
-            String[] contentList = line.split(" ");
-            if (contentList.length < 2) {
-                continue;
-            }
-            domainIpMap.put(contentList[1], contentList[0]);
+            BufferedReader br = new BufferedReader(new FileReader(txt));
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] list = line.split(" ");
+                if (list.length < 2) {
+                    continue;
+                }
+                //Inserts the specified key/value pair into the HashMap
+                //hashmap.put£¨K key£¬V value£©
+                domainIp.put(list[1], list[0]);
             if(d==2) {
-            	System.out.println(contentList[1]+" "+contentList[0]);
+                System.out.println(list[1]+" ip:"+list[0]);
             }
         }
         br.close();
-        System.out.println("OK!\n" + domainIpMap.size() + " names, occupy "  + localTableFile.length() + " bytes memory");
+        System.out.println("OK!\n" + domainIp.size() + " names, occupy "  + txt.length() + " bytes memory");
         } catch (IOException e) {
         	System.out.println("Read file error!\nExiting...");
         	System.exit(0);
         }
-        return domainIpMap;
     }
 
-    // DD, D=1, DD=2
+    /**
+     * @Description: Determine Debugging Level, D=1, DD=2
+     * @param D
+     */
     public static int DorDD(String D) {
         if(D.length() == 2) {
             return 1;
@@ -76,12 +82,16 @@ public class DNSRelayServer {
         }
     }
 
-    public static int judgeParaType(String p) {
-        if(p.length()<=3) {
+    /**
+     * @Description: Determine the type of input.
+     * @param type
+     */
+    public static int judgeParaType(String type) {
+        if(type.length()<=3) {
             return 0;
-        }else if(p.contains(".txt")) {
+        }else if(type.contains(".txt")) {
             return 2;
-        }else if(p.indexOf(".")!=-1){
+        }else if(type.contains(".")){
             return 1;
         }else {
             System.out.println("Input error\nExiting...");
@@ -90,8 +100,13 @@ public class DNSRelayServer {
     	}
     }
 
-    public static void main(String[] args) throws IOException {
+    /**
+     * @Description: Main function
+     * @param args
+     */
+    public static void main(String[] args) {
     	System.out.println("Usage: dnsrelay [-d | -dd] [<dns-server>] [<db-file>]\n");
+    	//Determine the input
         switch(args.length){
             case 0:
                 break;
@@ -105,6 +120,10 @@ public class DNSRelayServer {
                         break;
                     case 2:
                         dnsfile=args[0].getBytes();
+                        break;
+                    default:
+                        System.out.println("Input error\nExiting...");
+                        System.exit(0);
                         break;
                 }
                 break;
@@ -147,7 +166,7 @@ public class DNSRelayServer {
 
         // if no filepath/filename entered, use default
         if(dnsfile[0]==0) {
-            String dp =  "dnsrelay.txt";
+            String dp =  "C:\\Users\\yao\\Desktop\\dnsrelay-master\\dnsrelay-master\\dnsrelay.txt";
             dnsfile=dp.getBytes();
         }
         if(dnsaddr[0]==0) {
@@ -157,31 +176,36 @@ public class DNSRelayServer {
         
     	System.out.println("Name Server " + new String(dnsaddr));
     	System.out.println("Debug level " + d);
-        System.out.print("Bind UDP port "+ port +" ... ");
+        System.out.print("Bind UDP port "+ PORT +" ... ");
         
         try {
+            //Create an instance of DatagramSocket and bind the object to
+            // the native default IP address 127.0.0.1 and the specified port 53
             socket = new DatagramSocket(getDnsPort());
             System.out.println("OK!");
         } catch (SocketException e) {
+            //Port 53 occupied
         	System.out.println("Bind port error!\nExiting...");
         	System.exit(0);
         }
-        
+
+        //Read the file
         System.out.println("Try to load table \"" + new String(dnsfile) + "\" ... ");
-        
-        domainIpMap = domainIpMap(new String(dnsfile));
-        
+        domainIpMap(new String(dnsfile));
+
+        //Creates a DatagramPacket object that receives data from the DatagramSocket
         byte[] data = new byte[1024];
         DatagramPacket packet = new DatagramPacket(data, data.length);
 
         while (true) {
             try {
+                //Receive data
                 socket.receive(packet);
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            DNSQuery queryParser = new DNSQuery(packet);
-            queryParser.start();
+            DNSQuery query = new DNSQuery(packet);
+            query.start();
         }
     }
 }
